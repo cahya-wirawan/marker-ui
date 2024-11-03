@@ -19,17 +19,36 @@ MARKER_HEADER = """
 """
 
 MARKER_ABOUT = """
-## About
-Marker is a state-of-the-art PDF to Markdown converter that uses OCR to extract text and images from PDFs.
+## Marker
+[Marker](https://github.com/VikParuchuri/marker) converts PDF to markdown quickly and accurately.
 
-## How to Use
+- Supports a wide range of documents (optimized for books and scientific papers)
+- Supports all languages
+- Removes headers/footers/other artifacts
+- Formats tables and code blocks
+- Extracts and saves images along with the markdown
+- Converts most equations to latex
+- Works on GPU, CPU, or MPS
+
+## Marker API
+[Marker API](https://github.com/adithya-s-k/marker-api) is a RESTful API that allows you to convert PDF, PPT, 
+and DOC files to Markdown. It uses the [Marker](https://github.com/VikParuchuri/marker) library to parse the 
+document and extract the text and images.
+
+## Marker UI
+This [Marker UI](https://github.com/cahya-wirawan/marker-ui) provides a web user interface to upload a document 
+and convert it to Markdown using the Marker API.
+
+## How to Use this Marker UI
 1. Upload a PDF, PPT, or DOC file.
 2. Click on "Convert Document".
 3. View the extracted Markdown and images.
+4. Download the Markdown file and images.
 
 ## Documentation
 - [Marker](https://github.com/VikParuchuri/marker)
 - [Marker API Documentation](https://github.com/adithya-s-k/marker-api)
+- [Marker UI Documentation](https://github.com/cahya-wirawan/marker-ui)
 """
 
 def zip_folder(source_folder, output_path):
