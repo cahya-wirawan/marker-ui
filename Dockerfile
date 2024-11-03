@@ -12,6 +12,6 @@ COPY requirements.txt run.sh ./
 RUN chown -R $UID:$GID $APP_DIR
 
 USER $UID:$GID
-RUN python -m venv $APP_DIR/.venv && . $APP_DIR/.venv/bin/activate && pip install -r requirements.txt
+RUN python -m venv $APP_DIR/.venv && . $APP_DIR/.venv/bin/activate && pip install  --no-cache-dir -r requirements.txt
 
 ENTRYPOINT ["/bin/sh", "-c", "/app/run.sh"]
