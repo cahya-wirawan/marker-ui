@@ -8,34 +8,49 @@ import mimetypes
 import requests
 from PIL import Image
 from io import BytesIO
+import shutil
+import re
 
-MARKER_API_URL = "http://dls006.idc.ctbto.org:3006"
+MARKER_API_URL = "https://marker-api.ctbto.org"
+
+MARKER_HEADER = """
+# Marker UI
+**Marker** is a state-of-the-art PDF to Markdown Converter.  
+"""
+
+MARKER_ABOUT = """
+## About
+Marker is a state-of-the-art PDF to Markdown converter that uses OCR to extract text and images from PDFs.
+
+## How to Use
+1. Upload a PDF, PPT, or DOC file.
+2. Click on "Convert Document".
+3. View the extracted Markdown and images.
+
+## Documentation
+- [Marker](https://github.com/VikParuchuri/marker)
+- [Marker API Documentation](https://github.com/adithya-s-k/marker-api)
+"""
+
+def zip_folder(source_folder, output_path):
+   shutil.make_archive(output_path, 'zip', source_folder)
+   return Path(f"{output_path}.zip")
 
 def decode_base64_to_pil(base64_str):
     return Image.open(BytesIO(base64.b64decode(base64_str)))
 
+def download_file():
+    return [gr.UploadButton(visible=True), gr.DownloadButton(visible=True)]
 
-parse_document_docs = {
-    "curl": """curl -X POST -F "file=@/path/to/document" http://localhost:8000/parse_document""",
-    "python": """
-    coming soon⌛
-    """,
-    "javascript": """
-    coming soon⌛
-    """,
-}
-
-
-def parse_document(input_file_path, parameters, request: gr.Request):
+def parse_document(input_file_path):
     # Validate file extension
     allowed_extensions = [".pdf", ".ppt", ".pptx", ".doc", ".docx"]
     file_extension = os.path.splitext(input_file_path)[1].lower()
     if file_extension not in allowed_extensions:
         raise gr.Error(f"File type not supported: {file_extension}")
     try:
-        host_url = request.headers.get("host")
-
-        post_url = f"{MARKER_API_URL}/convert?max_pages=30&batch_multiplier=8"
+        marker_api_url = os.environ.get("MARKER_API_URL", MARKER_API_URL)
+        post_url = f"{marker_api_url}/convert?max_pages=30&batch_multiplier=8"
         # Determine the MIME type of the file
         mime_type, _ = mimetypes.guess_type(input_file_path)
         if not mime_type:
@@ -48,88 +63,68 @@ def parse_document(input_file_path, parameters, request: gr.Request):
             )
 
         document_response = response.json()["result"]
-
         images = document_response.get("images", [])
-
+        input_file_path = Path(input_file_path)
+        zip_dir = input_file_path.parent/input_file_path.stem
+        zip_dir.mkdir(exist_ok=True)
+        file_md = zip_dir / f"{input_file_path.stem}.md"
+        with open(file_md, "w") as f:
+            f.write(document_response["markdown"])
         # Decode each base64-encoded image to a PIL image
         pil_images = [
             decode_base64_to_pil(images[image_name]) for image_name in images
         ]
-
+        for image_name in images:
+            image_path = zip_dir / image_name
+            with open(image_path, "wb") as f:
+                f.write(base64.b64decode(images[image_name]))
+        zip_file = zip_folder(zip_dir, zip_dir)
+        # document_response["markdown"] = re.sub(r"(\n![^(]+)\(([^)]+)\)", r"\1(file/\2)", document_response["markdown"])
         return (
             str(document_response["markdown"]),
             gr.Gallery(value=pil_images, visible=True),
-            str(document_response["markdown"]),
-            gr.JSON(value=document_response, visible=True),
+            gr.DownloadButton(
+                label=f"Download {zip_file.name}",
+                value=zip_file,
+                visible=True,
+            ),
         )
 
     except Exception as e:
         raise gr.Error(f"Failed to parse: {e}")
 
 
-demo_ui = gr.Blocks(theme=gr.themes.Monochrome(radius_size=gr.themes.sizes.radius_none))
+marker_ui = gr.Blocks(theme=gr.themes.Monochrome(radius_size=gr.themes.sizes.radius_none))
 
-with demo_ui as demo:
-    gr.Markdown(
-        "<h1>Marker-API</h1> \n Easily deployable 🚀 API to convert PDF to markdown quickly with high accuracy."
-    )
-
+with marker_ui:
+    gr.Markdown(MARKER_HEADER)
     with gr.Tabs():
         with gr.TabItem("Documents"):
-            with gr.Row():
-                with gr.Column(scale=80):
-                    document_file = gr.File(
-                        label="Upload Document",
-                        type="filepath",
-                        file_count="single",
-                        interactive=True,
-                        file_types=[".pdf", ".ppt", ".doc", ".pptx", ".docx"],
-                    )
-                    with gr.Accordion("Parameters", visible=True):
-                        document_parameter = gr.Dropdown(
-                            [
-                                "Fixed Size Chunking",
-                                "Regex Chunking",
-                                "Semantic Chunking",
-                            ],
-                            label="Chunking Stratergy",
-                        )
-                        if document_parameter == "Fixed Size Chunking":
-                            document_chunk_size = gr.Number(
-                                minimum=250, maximum=10000, step=100, show_label=False
-                            )
-                            document_overlap_size = gr.Number(
-                                minimum=250, maximum=1000, step=100, show_label=False
-                            )
-                    document_button = gr.Button("Parse Document")
-                with gr.Column(scale=200):
-                    with gr.Accordion("Markdown"):
-                        document_markdown = gr.Markdown()
-                    with gr.Accordion("Extracted Images"):
-                        document_images = gr.Gallery(visible=False)
-                    with gr.Accordion("Chunks", visible=False):
-                        document_chunks = gr.Markdown()
-            with gr.Accordion("JSON Output"):
-                document_json = gr.JSON(label="Output JSON", visible=False)
-            with gr.Accordion("Use API", open=True):
-                gr.Code(
-                    language="shell",
-                    value=parse_document_docs["curl"],
-                    lines=1,
-                    label="Curl",
+            with gr.Column(scale=80):
+                document_file = gr.File(
+                    label="Upload Document",
+                    type="filepath",
+                    file_count="single",
+                    interactive=True,
+                    file_types=[".pdf", ".ppt", ".doc", ".pptx", ".docx"],
                 )
-                gr.Code(
-                    language="python", value="Coming Soon⌛", lines=1, label="python"
-                )
-
-
+                document_button = gr.Button("Convert Document")
+                download_button = gr.DownloadButton("Download the markdown file and its images", visible=True)
+            with gr.Column(scale=200):
+                with gr.Accordion("Markdown", open=True):
+                    document_markdown = gr.Markdown(min_height=200, container=False)
+                with gr.Accordion("Extracted Images"):
+                    document_images = gr.Gallery(visible=False)
+        with gr.TabItem("About"):
+            gr.Markdown(MARKER_ABOUT)
     document_button.click(
         fn=parse_document,
-        inputs=[document_file, document_parameter],
-        outputs=[document_markdown, document_images, document_chunks, document_json],
+        inputs=[document_file],
+        outputs=[document_markdown, document_images, download_button],
     )
+    download_button.click(download_file, None, [document_button, download_button])
 
     
 if __name__ == "__main__":
-    demo.queue(max_size=10)
-    demo.launch(server_name="0.0.0.0")
+    marker_ui.queue(max_size=10)
+    marker_ui.launch(server_name="0.0.0.0", server_port=8000, allowed_paths=["/"])
