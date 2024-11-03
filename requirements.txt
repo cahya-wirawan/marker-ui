@@ -1,0 +1,5 @@
+gradio
+aiohttp
+requests
+urllib3
+Pillow
