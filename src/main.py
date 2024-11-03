@@ -10,7 +10,7 @@ import re
 import os
 from urllib.parse import quote
 
-MARKER_API_URL = "https://marker-api.ctbto.org"
+MARKER_API_URL = "https://marker-api.example.com"
 GRADIO_TEMP_DIR = "data"
 
 MARKER_HEADER = """
