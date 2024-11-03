@@ -7,7 +7,7 @@ RUN addgroup --gid $GID llm-adm && adduser --uid $UID --ingroup llm-adm --disabl
 
 ARG APP_DIR=/app
 WORKDIR $APP_DIR
-COPY src src
+COPY src assets data ./
 COPY requirements.txt run.sh ./
 RUN chown -R $UID:$GID $APP_DIR
 

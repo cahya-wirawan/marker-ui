@@ -1,4 +1,3 @@
 #!/bin/sh
 
-. /app/.venv/bin/activate && cd /app/src && python main.py
-
+. /app/.venv/bin/activate && cd /app && python src/main.py
