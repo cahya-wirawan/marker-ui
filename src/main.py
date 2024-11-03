@@ -11,6 +11,7 @@ from io import BytesIO
 import shutil
 import re
 import os
+from urllib.parse import quote
 
 MARKER_API_URL = "https://marker-api.ctbto.org"
 GRADIO_TEMP_DIR = "data"
@@ -76,7 +77,7 @@ def parse_document(input_file_path):
             image_path = zip_dir / image_name
             with open(image_path, "wb") as f:
                 f.write(base64.b64decode(images[image_name]))
-        image_dir = "/".join(str(zip_dir).split("/")[-3:])
+        image_dir = quote("/".join(str(zip_dir).split("/")[-3:]))
         zip_file = zip_folder(zip_dir, zip_dir)
         document_response["markdown"] = re.sub(r"(\n![^(]+)\(([^)]+)\)", fr"\1(/gradio_api/file={image_dir}/\2)", document_response["markdown"])
         return (
