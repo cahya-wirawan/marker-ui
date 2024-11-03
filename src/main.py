@@ -10,8 +10,10 @@ from PIL import Image
 from io import BytesIO
 import shutil
 import re
+import os
 
 MARKER_API_URL = "https://marker-api.ctbto.org"
+GRADIO_TEMP_DIR = "data"
 
 MARKER_HEADER = """
 # Marker UI
@@ -70,19 +72,15 @@ def parse_document(input_file_path):
         file_md = zip_dir / f"{input_file_path.stem}.md"
         with open(file_md, "w") as f:
             f.write(document_response["markdown"])
-        # Decode each base64-encoded image to a PIL image
-        pil_images = [
-            decode_base64_to_pil(images[image_name]) for image_name in images
-        ]
         for image_name in images:
             image_path = zip_dir / image_name
             with open(image_path, "wb") as f:
                 f.write(base64.b64decode(images[image_name]))
+        image_dir = "/".join(str(zip_dir).split("/")[-3:])
         zip_file = zip_folder(zip_dir, zip_dir)
-        # document_response["markdown"] = re.sub(r"(\n![^(]+)\(([^)]+)\)", r"\1(file/\2)", document_response["markdown"])
+        document_response["markdown"] = re.sub(r"(\n![^(]+)\(([^)]+)\)", fr"\1(/gradio_api/file={image_dir}/\2)", document_response["markdown"])
         return (
             str(document_response["markdown"]),
-            gr.Gallery(value=pil_images, visible=True),
             gr.DownloadButton(
                 label=f"Download {zip_file.name}",
                 value=zip_file,
@@ -93,10 +91,11 @@ def parse_document(input_file_path):
     except Exception as e:
         raise gr.Error(f"Failed to parse: {e}")
 
-
+os.environ["GRADIO_TEMP_DIR"] = GRADIO_TEMP_DIR
 marker_ui = gr.Blocks(theme=gr.themes.Monochrome(radius_size=gr.themes.sizes.radius_none))
 
 with marker_ui:
+    gr.set_static_paths(paths=["assets", GRADIO_TEMP_DIR])
     gr.Markdown(MARKER_HEADER)
     with gr.Tabs():
         with gr.TabItem("Documents"):
@@ -113,18 +112,16 @@ with marker_ui:
             with gr.Column(scale=200):
                 with gr.Accordion("Markdown", open=True):
                     document_markdown = gr.Markdown(min_height=200, container=False)
-                with gr.Accordion("Extracted Images"):
-                    document_images = gr.Gallery(visible=False)
         with gr.TabItem("About"):
             gr.Markdown(MARKER_ABOUT)
     document_button.click(
         fn=parse_document,
         inputs=[document_file],
-        outputs=[document_markdown, document_images, download_button],
+        outputs=[document_markdown, download_button],
     )
     download_button.click(download_file, None, [document_button, download_button])
 
     
 if __name__ == "__main__":
     marker_ui.queue(max_size=10)
-    marker_ui.launch(server_name="0.0.0.0", server_port=8000, allowed_paths=["/"])
+    marker_ui.launch(server_name="0.0.0.0", server_port=8000)
