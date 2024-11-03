@@ -1,8 +1,5 @@
 from pathlib import Path
 import gradio as gr
-from typing import List, Any, Dict
-import os
-import logging
 import base64
 import mimetypes
 import requests
