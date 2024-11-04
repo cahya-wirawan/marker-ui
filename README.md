@@ -26,6 +26,10 @@ docker pull wirawan/marker-ui
 ```
 docker run --rm -env-file `pwd`/.env -p8000:8000 wirawan/marker-ui
 ```
+- or just include the environment variable in command line:
+```
+docker run --rm --env MARKER_API_URL=https://marker-api... -p8000:8000 wirawan/marker-ui
+```
 
 ## How to use this Marker UI
 1. Upload a PDF, PPT, or DOC file.
